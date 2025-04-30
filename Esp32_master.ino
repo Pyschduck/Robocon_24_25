@@ -1,9 +1,24 @@
+#include <AccelStepper.h>
 #include <Wire.h>
 #include <PS4Controller.h>
 
 #define I2C_SDA 21
 #define I2C_SCL 22
 #define SLAVE_ADDR 0x08
+
+#define STEP_PIN 27
+#define DIR_PIN 14
+#define STEPS_PER_REV (200 * 19)  // Motor steps * gear ratio
+#define MICROSTEPS 32  
+
+AccelStepper stepper(AccelStepper::DRIVER, STEP_PIN, DIR_PIN);
+bool pos = false;
+
+int angleToSteps(int angle) {
+  return (angle * MICROSTEPS * STEPS_PER_REV) / 360;
+}
+
+TaskHandle_t steppertask;
 
 struct PS4Data {
     bool Square;
@@ -27,16 +42,45 @@ struct PS4Data {
 
 PS4Data ps4Data;
 
+void steppermot(void *parameters){
+  static bool lastCross = false;
+  while(1)
+  {
+    if (PS4.Cross()) {
+      if (!lastCross) {  
+        pos = !pos;       
+        int targetSteps = pos ? angleToSteps(-55) : angleToSteps(55);
+        stepper.moveTo(targetSteps);
+        // Serial.printf("Stepper steps %d\n", targetSteps);
+        while (stepper.distanceToGo()) {
+          stepper.run();
+          // vTaskDelay(1); 
+        }
+        stepper.setCurrentPosition(0);
+      }
+      lastCross = true;
+    } else {
+      lastCross = false;
+    }
+    vTaskDelay(10 / portTICK_PERIOD_MS); 
+  }
+}
+
 void setup() {
     Serial.begin(115200);
     Wire.begin(I2C_SDA, I2C_SCL,200000);
-    PS4.begin("fc:a5:d0:36:fd:75");
-    Serial.println("Waiting for PS4 Controller...");
+    PS4.begin("fc:a5:d0:36:fd:77");
+  stepper.setMaxSpeed(250288);
+  stepper.setAcceleration(150440);
+  stepper.setSpeed(250288);
+  stepper.setCurrentPosition(0);
+  xTaskCreate(steppermot,"stepper",2048,NULL,2,&steppertask);
+    // Serial.println("Waiting for PS4 Controller...");
 }
 
 void loop() {
     if (PS4.isConnected()) {
-        Serial.println("PS4 Controller Connected");
+        // Serial.println("PS4 Controller Connected");
         ps4Data.LStickX = PS4.LStickX();
         ps4Data.LStickY = PS4.LStickY();
         ps4Data.RStickX = PS4.RStickX();
@@ -59,14 +103,15 @@ void loop() {
         Wire.write((uint8_t*)&ps4Data, sizeof(ps4Data)); 
         Wire.endTransmission();
 
-        Serial.printf("Sent: LX:%d LY:%d RX:%d RY:%d SQ:%d X:%d O:%d TRI:%d TP:%d UP:%d DOWN:%d LEFT:%d RIGHT:%d L1:%d R1:%d L2:%d R2:%d\n",
-                      ps4Data.LStickX, ps4Data.LStickY, ps4Data.RStickX, ps4Data.RStickY,
-                      ps4Data.Square, ps4Data.Cross, ps4Data.Circle, ps4Data.Triangle,
-                      ps4Data.touchpad, ps4Data.Up, ps4Data.Down, ps4Data.Left, ps4Data.Right,
-                      ps4Data.L1, ps4Data.R1, ps4Data.L2, ps4Data.R2);
-    } else {
-        Serial.println("PS4 Controller Disconnected");
+        // Serial.printf("Sent: LX:%d LY:%d RX:%d RY:%d SQ:%d X:%d O:%d TRI:%d TP:%d UP:%d DOWN:%d LEFT:%d RIGHT:%d L1:%d R1:%d L2:%d R2:%d\n",
+        //               ps4Data.LStickX, ps4Data.LStickY, ps4Data.RStickX, ps4Data.RStickY,
+        //               ps4Data.Square, ps4Data.Cross, ps4Data.Circle, ps4Data.Triangle,
+        //               ps4Data.touchpad, ps4Data.Up, ps4Data.Down, ps4Data.Left, ps4Data.Right,
+        //               ps4Data.L1, ps4Data.R1, ps4Data.L2, ps4Data.R2);
     }
+    //  else {
+        // Serial.println("PS4 Controller Disconnected");
+    // }
 
     // delay(100);
 }
