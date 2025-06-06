@@ -18,7 +18,7 @@ TaskHandle_t Taskmot3;
 #define UART_PORT_1_TX 41
 #define SERIAL1 SERIAL_PORT_1
 
-#define UART_PORT_2_TX 40
+#define UART_PORT_2_TX 16
 #define SERIAL2 SERIAL_PORT_2
 
 #define DEBUG 0
