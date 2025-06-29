@@ -4,7 +4,7 @@
 #include <HardwareSerial.h>
 
 Servo esc;
-#define ESC_PIN 40
+#define ESC_PIN 16
 
 TaskHandle_t Taskmot1;
 TaskHandle_t Taskmot2;
@@ -18,7 +18,7 @@ TaskHandle_t Taskmot3;
 #define UART_PORT_1_TX 41
 #define SERIAL1 SERIAL_PORT_1
 
-#define UART_PORT_2_TX 16
+#define UART_PORT_2_TX 40
 #define SERIAL2 SERIAL_PORT_2
 
 #define DEBUG 0
@@ -89,10 +89,10 @@ void uart2Write(uart_ctrl_chan_t chan, uart_ctrl_dir_t dir, uint8_t speed) {
 void shooter_dc(void *parameters) {
   while (1) {
     if (ps4Data.Right) {
-      uart1Write(UART_SIG_RCHAN, UART_SIG_CW, 20);
+      uart1Write(UART_SIG_RCHAN, UART_SIG_CW, 15);
       // Serial.println("RIght");
     } else if (ps4Data.Left) {
-      uart1Write(UART_SIG_RCHAN, UART_SIG_CCW, 20);
+      uart1Write(UART_SIG_RCHAN, UART_SIG_CCW, 15);
       // Serial.println("Left");
     } else {
       uart1Write(UART_SIG_RCHAN, UART_SIG_CW, 0);  
@@ -108,9 +108,9 @@ void intake(void *parameters) {
     if(ps4Data.Triangle){
       // Serial.println("Intake");
       // uint8_t l2 = map(ps4Data.L2,0,255,0,63);
-      uart1Write(UART_SIG_LCHAN, UART_SIG_CW,63); 
+      uart1Write(UART_SIG_LCHAN, UART_SIG_CW,60); 
   }else if(ps4Data.Circle){
-     uart1Write(UART_SIG_LCHAN, UART_SIG_CCW,63); 
+     uart1Write(UART_SIG_LCHAN, UART_SIG_CCW,60); 
   }else
   {
     uart1Write(UART_SIG_LCHAN, UART_SIG_CCW,0);
@@ -123,10 +123,10 @@ void shooter_angle(void *parameters)
 {
     while (1) {
     if (ps4Data.Up) {
-      uart2Write(UART_SIG_RCHAN, UART_SIG_CW, 20);
+      uart2Write(UART_SIG_RCHAN, UART_SIG_CCW, 30);
       // Serial.println("RIght");
     } else if (ps4Data.Down) {
-      uart2Write(UART_SIG_RCHAN, UART_SIG_CCW, 20);
+      uart2Write(UART_SIG_RCHAN, UART_SIG_CW, 30);
       // Serial.println("Left");
     } else {
       uart2Write(UART_SIG_RCHAN, UART_SIG_CW, 0);  
@@ -135,12 +135,13 @@ void shooter_angle(void *parameters)
     vTaskDelay(10 / portTICK_PERIOD_MS); 
   }
 }
+
 void bldc(void *parameters){
  while (1) {
-    // if(ps4Data.R2){
+    if(ps4Data.R2>15){
     int throttle = map(ps4Data.R2, 0, 255, 1050, 2000); 
 
-    if (throttle >= 1000 && throttle <= 2000) {
+    if (throttle >= 1050 && throttle <= 2000) {
         int currentThrottle = esc.readMicroseconds();
 
         if (throttle > currentThrottle) {
@@ -161,10 +162,14 @@ void bldc(void *parameters){
         }
     }
     // }
-      vTaskDelay(10 / portTICK_PERIOD_MS); 
+}else if(ps4Data.L2>15){
+  esc.writeMicroseconds(1400);
+}else {
+  esc.writeMicroseconds(0);
+}
+vTaskDelay(10 / portTICK_PERIOD_MS); 
 }
 }
-
 
 void receiveEvent(int bytes) {
   if (bytes == sizeof(PS4Data)) {
