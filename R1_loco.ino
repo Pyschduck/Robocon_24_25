@@ -2,27 +2,21 @@
 #include <Wire.h>
 #include <HardwareSerial.h>
 
-TaskHandle_t locotask = NULL;
 
-TaskHandle_t Taskmot1 = NULL;
-TaskHandle_t Taskmot2 = NULL;
-
-#define mot1_in 40
-#define mot1_pwm 38
-
-#define mot2_in 41
-#define mot2_pwm 39
-
+// I2C Pins and Slave Address
 #define I2C_SDA 8
 #define I2C_SCL 9
-#define SLAVE_ADDR 0x08
+#define SLAVE_ADDR 0x05
 
-#define UART_PORT_1_TX 16
-#define UART_PORT_2_TX 17
+// UART TX Pins
+#define UART_PORT_1_TX 41
+#define UART_PORT_2_TX 40
 
+// Serial Ports
 #define SERIAL1 Serial1
 #define SERIAL2 Serial2
 
+// Enums for motor control
 typedef enum {
   UART_SIG_CW = 0,
   UART_SIG_CCW = 1,
@@ -88,136 +82,93 @@ void uart2Write(uart_ctrl_chan_t chan, uart_ctrl_dir_t dir, uint8_t speed) {
 }
 
 // Movement functions
-void forwards(uint8_t speed) {
-  Serial.println("F");
-  uart1Write(UART_SIG_LCHAN, UART_SIG_CCW, speed);
-  uart2Write(UART_SIG_LCHAN, UART_SIG_CW, 0);
-  uart1Write(UART_SIG_RCHAN, UART_SIG_CW, speed);
-  uart2Write(UART_SIG_RCHAN, UART_SIG_CCW, 0);
-}
-
 void backwards(uint8_t speed) {
-    Serial.println("B");
+  // Serial.println("F");
   uart1Write(UART_SIG_LCHAN, UART_SIG_CW, speed);
   uart2Write(UART_SIG_LCHAN, UART_SIG_CCW, 0);
   uart1Write(UART_SIG_RCHAN, UART_SIG_CCW, speed);
   uart2Write(UART_SIG_RCHAN, UART_SIG_CW, 0);
 }
 
-void right(uint8_t speed) {
-    Serial.println("R");
-  uart1Write(UART_SIG_LCHAN, UART_SIG_CCW, 0);
-  uart2Write(UART_SIG_LCHAN, UART_SIG_CCW, speed);
-  uart1Write(UART_SIG_RCHAN, UART_SIG_CCW, 0);
-  uart2Write(UART_SIG_RCHAN, UART_SIG_CW, speed);
+void forwards(uint8_t speed) {
+    // Serial.println("B");
+  uart1Write(UART_SIG_LCHAN, UART_SIG_CCW, speed);
+  uart2Write(UART_SIG_LCHAN, UART_SIG_CW, 0);
+  uart1Write(UART_SIG_RCHAN, UART_SIG_CW, speed);
+  uart2Write(UART_SIG_RCHAN, UART_SIG_CCW, 0);
 }
 
 void left(uint8_t speed) {
-    Serial.println("L");
-  uart1Write(UART_SIG_LCHAN, UART_SIG_CCW, 0);
+    // Serial.println("R");
+  uart1Write(UART_SIG_LCHAN, UART_SIG_CW, 0);
   uart2Write(UART_SIG_LCHAN, UART_SIG_CW, speed);
-  uart1Write(UART_SIG_RCHAN, UART_SIG_CCW, 0);
+  uart1Write(UART_SIG_RCHAN, UART_SIG_CW, 0);
   uart2Write(UART_SIG_RCHAN, UART_SIG_CCW, speed);
 }
 
-void rotate_clock() {
-    Serial.println("C");
-  uart1Write(UART_SIG_LCHAN, UART_SIG_CW, 20);
-  uart2Write(UART_SIG_LCHAN, UART_SIG_CW, 20);
-  uart1Write(UART_SIG_RCHAN, UART_SIG_CW, 20);
-  uart2Write(UART_SIG_RCHAN, UART_SIG_CW, 20);
+void right(uint8_t speed) {
+    // Serial.println("L");
+  uart1Write(UART_SIG_LCHAN, UART_SIG_CW, 0);
+  uart2Write(UART_SIG_LCHAN, UART_SIG_CCW, speed);
+  uart1Write(UART_SIG_RCHAN, UART_SIG_CW, 0);
+  uart2Write(UART_SIG_RCHAN, UART_SIG_CW, speed);
 }
 
-void anticlock() {
-    Serial.println("A");
-  uart1Write(UART_SIG_LCHAN, UART_SIG_CCW, 20);
-  uart2Write(UART_SIG_LCHAN, UART_SIG_CCW, 20);
-  uart1Write(UART_SIG_RCHAN, UART_SIG_CCW, 20);
-  uart2Write(UART_SIG_RCHAN, UART_SIG_CCW, 20);
+void anticlock(uint8_t speed) {
+    // Serial.println("C");
+  uart1Write(UART_SIG_LCHAN, UART_SIG_CW, speed);
+  uart2Write(UART_SIG_LCHAN, UART_SIG_CCW, speed);
+  uart1Write(UART_SIG_RCHAN, UART_SIG_CW, speed);
+  uart2Write(UART_SIG_RCHAN, UART_SIG_CCW, speed);
+}
+
+void rotate_clock(uint8_t speed) {
+    // Serial.println("A");
+  uart1Write(UART_SIG_LCHAN, UART_SIG_CCW,speed);
+  uart2Write(UART_SIG_LCHAN, UART_SIG_CW, speed);
+  uart1Write(UART_SIG_RCHAN, UART_SIG_CCW, speed);
+  uart2Write(UART_SIG_RCHAN, UART_SIG_CW, speed);
 }
 
 void stop() {
-    Serial.println("S");
+    // Serial.println("S");
   uart1Write(UART_SIG_LCHAN, UART_SIG_CCW, 0);
   uart2Write(UART_SIG_LCHAN, UART_SIG_CCW, 0);
   uart1Write(UART_SIG_RCHAN, UART_SIG_CCW, 0);
   uart2Write(UART_SIG_RCHAN, UART_SIG_CCW, 0);
 }
 
-void loco(void *parameters){
-  while(1)
-  {
+void receiveEvent(int bytes) {
+  if (bytes == sizeof(PS4Data)) {
+    Wire.readBytes((uint8_t*)&ps4Data, sizeof(ps4Data));
+
     int ly = ps4Data.LStickY;
     int rx = ps4Data.RStickX;
     if (ly > 15) {
-      Serial.println("F");
-      forwards(map(ly, 0, 127, 0, 63));
+      // Serial.println("F");
+      forwards(map(ly, 0, 127, 0, 40));
     } else if (ly < -15) {
-      Serial.println("B");
-      backwards(map(ly, 0, -127, 0, 63));
+      // Serial.println("B");
+      backwards(map(ly, 0, -127, 0, 40));
     } else if (rx > 15) {
-      Serial.println("R");
-      right(map(rx, 0, 127, 0, 63));
+      // Serial.println("R");
+      anticlock(map(rx, 0, 127, 0, 25));
     } else if (rx < -15) {
-      Serial.println("L");
-      left(map(rx, 0, -127, 0, 63));
+      // Serial.println("L");
+      rotate_clock(map(rx, 0, -127, 0, 25));
     } else if (ps4Data.L1) {
-      Serial.println("CCW");
-      anticlock();
+      // Serial.println("CCW");
+      left(35);
     } else if (ps4Data.R1) {
-      Serial.println("CW");
-      rotate_clock();
+      // Serial.println("CW");
+      right(35);
     } else {
-      Serial.println("S");
+      // Serial.println("S");
       stop();
     }
   }
 }
 
-void intake(void *parameters) {
-  while (1) {
-    if (ps4Data.Up) {
-      Serial.println("Intake Up"); 
-        digitalWrite(mot2_in,LOW);
-         analogWrite(mot2_pwm,255);
-    } else if (ps4Data.Down) {
-      Serial.println("Intake Down");
-        digitalWrite(mot2_in,HIGH);
-         analogWrite(mot2_pwm,255); 
-    } else {
-        digitalWrite(mot2_in,LOW);
-         analogWrite(mot2_pwm,0); 
-    }
-    vTaskDelay(10 / portTICK_PERIOD_MS);
-  }
-}
-
-void shooter(void *parameters) {
-  while (1) {
-    if (ps4Data.L2 >= 10) {
-      uint8_t l2 = map(ps4Data.L2, 0, 255, 0, 63);
-      Serial.printf("Shooter L2 val %d\n", l2);
-      // uartWrite(UART_SIG_RCHAN, UART_SIG_CW, l2);
-        digitalWrite(mot1_in,LOW);
-         analogWrite(mot1_pwm,l2);
-    } else {
-      // uartWrite(UART_SIG_RCHAN, UART_SIG_CW, 0);
-        digitalWrite(mot1_in,LOW);
-         analogWrite(mot1_pwm,0);  
-    }
-    vTaskDelay(10 / portTICK_PERIOD_MS);
-  }
-}
-void receiveEvent(int bytes) {
-  if (bytes == sizeof(PS4Data)) {
-    uint8_t *ptr = (uint8_t*)&ps4Data;
-    for (int i = 0; i < sizeof(PS4Data); i++) {
-      if (Wire.available()) {
-        ptr[i] = Wire.read();
-      }
-    }
-  }
-}
 void setup() {
   Serial.begin(115200);
   SERIAL1.begin(115200, SERIAL_8N1, -1, UART_PORT_1_TX);
@@ -226,21 +177,6 @@ void setup() {
   SERIAL2.begin(115200, SERIAL_8N1, -1, UART_PORT_2_TX);
   SERIAL2.flush();
 
-  pinMode(mot1_in, OUTPUT);
-  pinMode(mot2_in, OUTPUT);
-  pinMode(mot1_pwm, OUTPUT);
-  pinMode(mot2_pwm, OUTPUT);
-
-  digitalWrite(mot1_in,LOW);
-  digitalWrite(mot2_in,LOW);
-  analogWrite(mot1_pwm,0);
-  analogWrite(mot2_pwm,0);
-
-  stop();
-
-  xTaskCreate(loco, "loco", 2048, NULL, 1, &locotask);
-  xTaskCreate(shooter, "shooter", 2048, NULL, 1, &Taskmot1);
-  xTaskCreate(intake, "intake", 2048, NULL, 1, &Taskmot2);
   Wire.begin(SLAVE_ADDR);
   Wire.onReceive(receiveEvent);
 }
