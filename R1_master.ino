@@ -1,10 +1,24 @@
+#include <AccelStepper.h>
 #include <Wire.h>
 #include <PS4Controller.h>
 
 #define I2C_SDA 21
 #define I2C_SCL 22
-#define SLAVE_ADDR 0x08
+#define SLAVE_ADDR 0x05
 
+#define STEP_PIN 27
+#define DIR_PIN 14
+#define STEPS_PER_REV (200 * 19)  // Motor steps * gear ratio
+#define MICROSTEPS 2
+
+AccelStepper stepper(AccelStepper::DRIVER, STEP_PIN, DIR_PIN);
+
+
+int angleToSteps(int angle) {
+  return (angle * MICROSTEPS * STEPS_PER_REV) / 360;
+}
+
+TaskHandle_t steppertask;
 
 struct PS4Data {
     bool Square;
@@ -27,11 +41,47 @@ struct PS4Data {
 };
 
 PS4Data ps4Data;
-*
+
+void steppermot(void *parameters) {
+  bool lastCross = false;
+  bool lastSquare = false;
+
+  while (1) {
+    bool currentCross = PS4.Cross();
+    bool currentSquare = PS4.Square();
+
+    if (currentCross && !lastCross) {
+      stepper.moveTo(angleToSteps(-85));
+      while (stepper.distanceToGo()) {
+        stepper.run();
+      }
+      stepper.setCurrentPosition(0);
+    } 
+    else if (currentSquare && !lastSquare) {
+      stepper.moveTo(angleToSteps(85));
+      while (stepper.distanceToGo()) {
+        stepper.run();
+      }
+      stepper.setCurrentPosition(0);
+    }
+
+    lastCross = currentCross;
+    lastSquare = currentSquare;
+
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+  }
+}
+
 void setup() {
     Serial.begin(115200);
     Wire.begin(I2C_SDA, I2C_SCL,200000);
-    PS4.begin("fc:a5:d0:36:fd:77");
+    PS4.begin("fc:a5:d0:36:fd:45");
+  stepper.setMaxSpeed(10000);
+  stepper.setAcceleration(5000);
+  stepper.setSpeed(10000);
+  stepper.setCurrentPosition(0);
+  xTaskCreate(steppermot,"stepper",4096,NULL,1,&steppertask);
+    // Serial.println("Waiting for PS4 Controller...");
 }
 
 void loop() {
