@@ -9,7 +9,7 @@
 #define STEP_PIN 27
 #define DIR_PIN 14
 #define STEPS_PER_REV (200 * 19)  // Motor steps * gear ratio
-#define MICROSTEPS 32  
+#define MICROSTEPS 1 
 
 AccelStepper stepper(AccelStepper::DRIVER, STEP_PIN, DIR_PIN);
 bool pos = false;
@@ -49,7 +49,7 @@ void steppermot(void *parameters){
     if (PS4.Cross()) {
       if (!lastCross) {  
         pos = !pos;       
-        int targetSteps = pos ? angleToSteps(-55) : angleToSteps(55);
+        int targetSteps = pos ? angleToSteps(-50) : angleToSteps(50);
         stepper.moveTo(targetSteps);
         // Serial.printf("Stepper steps %d\n", targetSteps);
         while (stepper.distanceToGo()) {
@@ -69,12 +69,12 @@ void steppermot(void *parameters){
 void setup() {
     Serial.begin(115200);
     Wire.begin(I2C_SDA, I2C_SCL,200000);
-    PS4.begin("fc:a5:d0:36:fd:77");
-  stepper.setMaxSpeed(250288);
-  stepper.setAcceleration(150440);
-  stepper.setSpeed(250288);
+    PS4.begin("fc:a5:d0:36:fd:69");
+  stepper.setMaxSpeed(7000);
+  stepper.setAcceleration(3500);
+  stepper.setSpeed(7000);
   stepper.setCurrentPosition(0);
-  xTaskCreate(steppermot,"stepper",2048,NULL,2,&steppertask);
+  xTaskCreate(steppermot,"stepper",4096,NULL,1,&steppertask);
     // Serial.println("Waiting for PS4 Controller...");
 }
 
