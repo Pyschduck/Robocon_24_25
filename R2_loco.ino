@@ -84,50 +84,50 @@ void uart2Write(uart_ctrl_chan_t chan, uart_ctrl_dir_t dir, uint8_t speed) {
 // Movement functions
 void forwards(uint8_t speed) {
   // Serial.println("F");
-  uart1Write(UART_SIG_LCHAN, UART_SIG_CCW, speed);
+  uart1Write(UART_SIG_LCHAN, UART_SIG_CW, speed);
   uart2Write(UART_SIG_LCHAN, UART_SIG_CW, 0);
   uart1Write(UART_SIG_RCHAN, UART_SIG_CW, speed);
-  uart2Write(UART_SIG_RCHAN, UART_SIG_CCW, 0);
+  uart2Write(UART_SIG_RCHAN, UART_SIG_CW, 0);
 }
 
 void backwards(uint8_t speed) {
     // Serial.println("B");
-  uart1Write(UART_SIG_LCHAN, UART_SIG_CW, speed);
-  uart2Write(UART_SIG_LCHAN, UART_SIG_CCW, 0);
+  uart1Write(UART_SIG_LCHAN, UART_SIG_CCW, speed);
+  uart2Write(UART_SIG_LCHAN, UART_SIG_CW, 0);
   uart1Write(UART_SIG_RCHAN, UART_SIG_CCW, speed);
   uart2Write(UART_SIG_RCHAN, UART_SIG_CW, 0);
 }
 
 void right(uint8_t speed) {
     // Serial.println("R");
-  uart1Write(UART_SIG_LCHAN, UART_SIG_CCW, 0);
+  uart1Write(UART_SIG_LCHAN, UART_SIG_CW, 0);
   uart2Write(UART_SIG_LCHAN, UART_SIG_CCW, speed);
-  uart1Write(UART_SIG_RCHAN, UART_SIG_CCW, 0);
-  uart2Write(UART_SIG_RCHAN, UART_SIG_CW, speed);
+  uart1Write(UART_SIG_RCHAN, UART_SIG_CW, 0);
+  uart2Write(UART_SIG_RCHAN, UART_SIG_CCW, speed);
 }
 
 void left(uint8_t speed) {
     // Serial.println("L");
-  uart1Write(UART_SIG_LCHAN, UART_SIG_CCW, 0);
+  uart1Write(UART_SIG_LCHAN, UART_SIG_CW, 0);
   uart2Write(UART_SIG_LCHAN, UART_SIG_CW, speed);
-  uart1Write(UART_SIG_RCHAN, UART_SIG_CCW, 0);
+  uart1Write(UART_SIG_RCHAN, UART_SIG_CW, 0);
+  uart2Write(UART_SIG_RCHAN, UART_SIG_CW, speed);
+}
+
+void rotate_clock(uint8_t speed) {
+    // Serial.println("C");
+  uart1Write(UART_SIG_LCHAN, UART_SIG_CW, speed);
+  uart2Write(UART_SIG_LCHAN, UART_SIG_CW, speed);
+  uart1Write(UART_SIG_RCHAN, UART_SIG_CCW, speed);
   uart2Write(UART_SIG_RCHAN, UART_SIG_CCW, speed);
 }
 
-void rotate_clock() {
-    // Serial.println("C");
-  uart1Write(UART_SIG_LCHAN, UART_SIG_CW, 20);
-  uart2Write(UART_SIG_LCHAN, UART_SIG_CW, 20);
-  uart1Write(UART_SIG_RCHAN, UART_SIG_CW, 20);
-  uart2Write(UART_SIG_RCHAN, UART_SIG_CW, 20);
-}
-
-void anticlock() {
+void anticlock(uint8_t speed) {
     // Serial.println("A");
-  uart1Write(UART_SIG_LCHAN, UART_SIG_CCW, 20);
-  uart2Write(UART_SIG_LCHAN, UART_SIG_CCW, 20);
-  uart1Write(UART_SIG_RCHAN, UART_SIG_CCW, 20);
-  uart2Write(UART_SIG_RCHAN, UART_SIG_CCW, 20);
+  uart1Write(UART_SIG_LCHAN, UART_SIG_CCW, speed);
+  uart2Write(UART_SIG_LCHAN, UART_SIG_CCW, speed);
+  uart1Write(UART_SIG_RCHAN, UART_SIG_CW, speed);
+  uart2Write(UART_SIG_RCHAN, UART_SIG_CW, speed);
 }
 
 void stop() {
@@ -145,25 +145,25 @@ void receiveEvent(int bytes) {
     int ly = ps4Data.LStickY;
     int rx = ps4Data.RStickX;
     if (ly > 15) {
-      Serial.println("F");
-      forwards(map(ly, 0, 127, 0, 63));
+      // Serial.println("F");
+      forwards(map(ly, 0, 127, 0, 40));
     } else if (ly < -15) {
-      Serial.println("B");
-      backwards(map(ly, 0, -127, 0, 63));
+      // Serial.println("B");
+      backwards(map(ly, 0, -127, 0, 40));
     } else if (rx > 15) {
-      Serial.println("R");
-      right(map(rx, 0, 127, 0, 63));
+      // Serial.println("R");
+      rotate_clock(map(rx, 0, 127, 0, 25));
     } else if (rx < -15) {
-      Serial.println("L");
-      left(map(rx, 0, -127, 0, 63));
+      // Serial.println("L");
+      anticlock(map(rx, 0, -127, 0, 25));
     } else if (ps4Data.L1) {
-      Serial.println("CCW");
-      anticlock();
+      // Serial.println("CCW");
+      left(35);
     } else if (ps4Data.R1) {
-      Serial.println("CW");
-      rotate_clock();
+      // Serial.println("CW");
+      right(35);
     } else {
-      Serial.println("S");
+      // Serial.println("S");
       stop();
     }
   }
