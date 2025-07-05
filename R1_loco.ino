@@ -146,10 +146,10 @@ void receiveEvent(int bytes) {
     int rx = ps4Data.RStickX;
     if (ly > 15) {
       // Serial.println("F");
-      forwards(map(ly, 0, 127, 0, 40));
+      forwards(map(ly, 0, 127, 0, 45));
     } else if (ly < -15) {
       // Serial.println("B");
-      backwards(map(ly, 0, -127, 0, 40));
+      backwards(map(ly, 0, -127, 0, 45));
     } else if (rx > 15) {
       // Serial.println("R");
       anticlock(map(rx, 0, 127, 0, 25));
@@ -158,10 +158,10 @@ void receiveEvent(int bytes) {
       rotate_clock(map(rx, 0, -127, 0, 25));
     } else if (ps4Data.L1) {
       // Serial.println("CCW");
-      left(35);
+      left(40);
     } else if (ps4Data.R1) {
       // Serial.println("CW");
-      right(35);
+      right(40);
     } else {
       // Serial.println("S");
       stop();
