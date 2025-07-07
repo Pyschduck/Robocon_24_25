@@ -4,7 +4,7 @@
 
 #define I2C_SDA 21
 #define I2C_SCL 22
-#define SLAVE_ADDR 0x08
+#define SLAVE_ADDR 0x05
 
 #define STEP_PIN 27
 #define DIR_PIN 14
@@ -69,10 +69,10 @@ void steppermot(void *parameters){
 void setup() {
     Serial.begin(115200);
     Wire.begin(I2C_SDA, I2C_SCL,200000);
-    PS4.begin("fc:a5:d0:36:fd:69");
-  stepper.setMaxSpeed(7000);
-  stepper.setAcceleration(3500);
-  stepper.setSpeed(7000);
+    PS4.begin("00:1B:FB:5A:3C:9E");
+  stepper.setMaxSpeed(8000);
+  stepper.setAcceleration(4000);
+  stepper.setSpeed(8000);
   stepper.setCurrentPosition(0);
   xTaskCreate(steppermot,"stepper",4096,NULL,1,&steppertask);
     // Serial.println("Waiting for PS4 Controller...");
