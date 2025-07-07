@@ -6,7 +6,7 @@
 // I2C Pins and Slave Address
 #define I2C_SDA 8
 #define I2C_SCL 9
-#define SLAVE_ADDR 0x08
+#define SLAVE_ADDR 0x05
 
 // UART TX Pins
 #define UART_PORT_1_TX 41
@@ -146,10 +146,10 @@ void receiveEvent(int bytes) {
     int rx = ps4Data.RStickX;
     if (ly > 15) {
       // Serial.println("F");
-      forwards(map(ly, 0, 127, 0, 40));
+      forwards(map(ly, 0, 127, 0, 45));
     } else if (ly < -15) {
       // Serial.println("B");
-      backwards(map(ly, 0, -127, 0, 40));
+      backwards(map(ly, 0, -127, 0, 45));
     } else if (rx > 15) {
       // Serial.println("R");
       rotate_clock(map(rx, 0, 127, 0, 25));
@@ -158,10 +158,10 @@ void receiveEvent(int bytes) {
       anticlock(map(rx, 0, -127, 0, 25));
     } else if (ps4Data.L1) {
       // Serial.println("CCW");
-      left(35);
+      left(40);
     } else if (ps4Data.R1) {
       // Serial.println("CW");
-      right(35);
+      right(40);
     } else {
       // Serial.println("S");
       stop();
